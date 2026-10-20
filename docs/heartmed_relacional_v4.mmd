@@ -1,0 +1,269 @@
+---
+title: HeartMed — Diagrama relacional (SQLite) — v4, igual a heartmed_sqlite.sql (20/10/2026)
+config:
+  theme: dark
+  layout: elk
+---
+erDiagram
+
+    %% =========================================================
+    %% v4 (revisión de normalización 20/10/2026): reemplaza a v2 y v3.
+    %% Sin tablas catálogo: el equipo usa TEXT + CHECK (los valores permitidos
+    %% van en el comentario de cada columna).
+    %% Cambios frente a v3: tabla alergias, signos vitales en columnas,
+    %% emergencias.tipo es FK a protocolos, unidad_medida, intervalo_horas,
+    %% movimiento BAJA y fechas en hora de Colombia.
+    %% Cada columna, tipo, NULL, PK, FK y UK coincide con heartmed_sqlite.sql.
+    %% =========================================================
+
+    %% =========================================================
+    %% MÓDULO 1 — SEGURIDAD Y PROTOCOLOS (Juan Pico)
+    %% =========================================================
+
+    roles {
+        INTEGER id_rol PK
+        VARCHAR(50) nombre_rol UK "NOCASE"
+        VARCHAR(300) descripcion "NULL"
+    }
+
+    permisos {
+        INTEGER id_permiso PK
+        VARCHAR(100) nombre_permiso
+        VARCHAR(50) cod_acceso UK "NOCASE"
+    }
+
+    rol_permiso {
+        INTEGER id_rol PK, FK
+        INTEGER id_permiso PK, FK
+    }
+
+    usuarios {
+        INTEGER id_usuario PK
+        INTEGER id_rol FK
+        VARCHAR(100) nombre
+        VARCHAR(150) correo UK "NOCASE"
+        VARCHAR(255) contrasena_hash
+        INTEGER activo "0 o 1, por defecto 1"
+        DATETIME fecha_creacion "por defecto ahora (Colombia)"
+    }
+
+    logs_auditoria {
+        INTEGER id_log PK
+        INTEGER id_usuario FK
+        VARCHAR(50) accion
+        VARCHAR(64) tabla_afectada
+        INTEGER id_registro "NULL"
+        TEXT detalle_cambio "NULL"
+        DATETIME fecha_modificacion "por defecto ahora (Colombia)"
+    }
+
+    protocolos {
+        INTEGER id_protocolo PK
+        TEXT tipo_emergencia UK "TRAUMATISMO, HEMORRAGIA, INTOXICACION, QUEMADURA, OTRO (lista única)"
+        VARCHAR(150) nombre
+    }
+
+    pasos_protocolo {
+        INTEGER id_paso PK
+        INTEGER id_protocolo FK "UK con numero"
+        INTEGER numero "1, 2, 3..."
+        TEXT descripcion
+    }
+
+    %% =========================================================
+    %% MÓDULO 2 — PACIENTES Y EMERGENCIAS (Juan Salazar)
+    %% =========================================================
+
+    pacientes {
+        INTEGER id_paciente PK
+        INTEGER id_usuario FK, UK "NULL: paciente sin cuenta"
+        VARCHAR(50) documento_identidad UK "NOCASE"
+        VARCHAR(150) nombre_completo
+        VARCHAR(255) foto_perfil "NULL"
+        DATE fecha_nacimiento
+        VARCHAR(5) tipo_sangre "F, S, X, XF"
+        VARCHAR(50) rango_cargo
+        BIGINT recompensa "mayor o igual a 0"
+        TEXT estado_salud "SANO, EN_TRATAMIENTO, EN_RECUPERACION, CRITICO; = último control (trigger)"
+    }
+
+    historias_clinicas {
+        INTEGER id_historia PK
+        INTEGER id_paciente FK, UK
+        INTEGER alergias_revisadas "0 o 1, por defecto 0"
+        TEXT antecedentes "NULL; solo antes del ingreso"
+        TEXT cirugias_previas "NULL; solo antes del ingreso"
+        TEXT observaciones "NULL"
+        INTEGER fruta_diablo "0 o 1, por defecto 0"
+        DATETIME fecha_creacion "por defecto ahora (Colombia)"
+    }
+
+    alergias {
+        INTEGER id_alergia PK
+        INTEGER id_historia FK "UK con sustancia"
+        VARCHAR(100) sustancia "NOCASE"
+        INTEGER id_medicamento FK "NULL; si está, no se puede recetar"
+    }
+
+    eventos_medicos {
+        INTEGER id_evento PK
+        INTEGER id_historia FK
+        INTEGER id_usuario_registra FK
+        TEXT tipo_evento "LESION, ENFERMEDAD, DIAGNOSTICO, CIRUGIA, OBSERVACION"
+        TEXT motivo
+        TEXT diagnostico
+        DATETIME fecha_evento
+    }
+
+    controles_evolucion {
+        INTEGER id_control PK
+        INTEGER id_paciente FK
+        INTEGER id_usuario_registra FK
+        DATETIME fecha
+        TEXT estado "SANO, EN_TRATAMIENTO, EN_RECUPERACION, CRITICO"
+        TEXT observaciones
+        INTEGER presion_sistolica "NULL; mmHg"
+        INTEGER presion_diastolica "NULL; mmHg"
+        INTEGER frecuencia_cardiaca "NULL; lpm"
+        REAL temperatura "NULL; grados C"
+        INTEGER saturacion_o2 "NULL; porcentaje"
+    }
+
+    emergencias {
+        INTEGER id_emergencia PK
+        TEXT tipo FK "a protocolos.tipo_emergencia"
+        TEXT sintomas
+        TEXT lesiones "NULL"
+        TEXT diagnostico_inicial
+        TEXT nivel_urgencia "BAJA, MEDIA, ALTA, CRITICA"
+        TEXT estado "ACTIVA, EN_ATENCION, FINALIZADA; por defecto ACTIVA"
+        DATETIME fecha_inicio
+        DATETIME fecha_fin "NULL; solo si FINALIZADA"
+    }
+
+    emergencia_paciente {
+        INTEGER id_emergencia PK, FK
+        INTEGER id_paciente PK, FK
+    }
+
+    acciones_emergencia {
+        INTEGER id_accion PK
+        INTEGER id_emergencia FK
+        INTEGER id_usuario_ejecutor FK
+        TEXT descripcion_accion
+        DATETIME fecha_hora "por defecto ahora (Colombia)"
+    }
+
+    %% =========================================================
+    %% MÓDULO 3 — INVENTARIO, TRATAMIENTOS Y ALERTAS (Daniel Rodríguez)
+    %% =========================================================
+
+    medicamentos {
+        INTEGER id_medicamento PK
+        VARCHAR(100) nombre UK "NOCASE"
+        VARCHAR(50) tipo_insumo "MEDICAMENTO, INSUMO"
+        VARCHAR(20) unidad_medida "UNIDAD, TABLETA, CAPSULA, AMPOLLA, FRASCO, TUBO, ROLLO, ML"
+        TEXT descripcion "NULL"
+        INTEGER cantidad_total_disponible "suma de lotes (trigger, solo lectura)"
+        INTEGER umbral_minimo "mayor o igual a 0"
+    }
+
+    lotes {
+        INTEGER id_lote PK
+        INTEGER id_medicamento FK "UK con num_lote"
+        VARCHAR(50) num_lote "NOCASE"
+        VARCHAR(100) ubicacion
+        DATE fecha_vencimiento
+        INTEGER cantidad "entradas - salidas (trigger, solo lectura)"
+    }
+
+    tratamientos {
+        INTEGER id_tratamiento PK
+        INTEGER id_paciente FK
+        INTEGER id_medicamento FK
+        INTEGER id_usuario_registra FK
+        VARCHAR(100) dosis
+        VARCHAR(100) frecuencia
+        INTEGER intervalo_horas "NULL; 1 a 168"
+        DATE fecha_inicio
+        DATE fecha_fin "NULL; fecha prevista"
+        DATE fecha_finalizacion_efectiva "NULL; obligatoria si FINALIZADO"
+        TEXT estado_tratamiento "ACTIVO, FINALIZADO, SUSPENDIDO; por defecto ACTIVO"
+        DATETIME fecha_registro "por defecto ahora (Colombia)"
+    }
+
+    movimientos_inventario {
+        INTEGER id_movimiento PK
+        INTEGER id_lote FK
+        INTEGER id_usuario FK
+        INTEGER id_tratamiento FK "NULL; solo en CONSUMO"
+        TEXT tipo_movimiento "ENTRADA, CONSUMO, BAJA"
+        INTEGER cantidad "mayor que 0"
+        DATETIME fecha_movimiento "por defecto ahora (Colombia)"
+        VARCHAR(300) motivo "NULL; obligatorio en salidas sin tratamiento"
+    }
+
+    alertas {
+        INTEGER id_alerta PK
+        INTEGER id_medicamento FK "NULL; solo STOCK_BAJO"
+        INTEGER id_lote FK "NULL; solo VENCIMIENTO_PROXIMO"
+        INTEGER id_tratamiento FK "NULL; solo DOSIS_PENDIENTE"
+        TEXT tipo_alerta "STOCK_BAJO, VENCIMIENTO_PROXIMO, DOSIS_PENDIENTE"
+        VARCHAR(300) mensaje
+        TEXT prioridad "BAJA, MEDIA, ALTA, CRITICA"
+        INTEGER notificada "0 o 1, por defecto 0"
+        INTEGER resuelta "0 o 1, por defecto 0"
+        DATETIME fecha_generacion "por defecto ahora (Colombia)"
+        DATETIME fecha_resolucion "NULL; obligatoria si resuelta = 1"
+    }
+
+    %% =========================================================
+    %% RELACIONES — SEGURIDAD Y PROTOCOLOS
+    %% =========================================================
+    roles ||--o{ usuarios : tiene
+    roles ||--o{ rol_permiso : asigna
+    permisos ||--o{ rol_permiso : "se asigna en"
+    usuarios ||--o{ logs_auditoria : autor
+    protocolos ||--o{ pasos_protocolo : pasos
+
+    %% =========================================================
+    %% RELACIONES — PACIENTES Y EMERGENCIAS
+    %% =========================================================
+    usuarios |o--o| pacientes : "cuenta de acceso"
+    pacientes ||--|| historias_clinicas : posee
+    historias_clinicas ||--o{ alergias : registra
+    historias_clinicas ||--o{ eventos_medicos : contiene
+    usuarios ||--o{ eventos_medicos : registra
+    pacientes ||--o{ controles_evolucion : tiene
+    usuarios ||--o{ controles_evolucion : registra
+    emergencias ||--o{ emergencia_paciente : involucra
+    pacientes ||--o{ emergencia_paciente : "involucrado en"
+    emergencias ||--o{ acciones_emergencia : documenta
+    usuarios ||--o{ acciones_emergencia : ejecuta
+    protocolos ||--o{ emergencias : "tipo de"
+
+    %% =========================================================
+    %% RELACIONES — INVENTARIO, TRATAMIENTOS Y ALERTAS
+    %% =========================================================
+    medicamentos ||--o{ lotes : stock
+    medicamentos |o--o{ alergias : "alergia a"
+    lotes ||--o{ movimientos_inventario : registra
+    usuarios ||--o{ movimientos_inventario : realiza
+    tratamientos |o--o{ movimientos_inventario : "consumo de"
+    pacientes ||--o{ tratamientos : recibe
+    medicamentos ||--o{ tratamientos : "se usa en"
+    usuarios ||--o{ tratamientos : registra
+    medicamentos |o--o{ alertas : "stock bajo"
+    lotes |o--o{ alertas : vencimiento
+    tratamientos |o--o{ alertas : "dosis pendiente"
+
+    %% =========================================================
+    %% COLORES POR MÓDULO
+    %% =========================================================
+    classDef seguridad stroke:#22d3ee,stroke-width:2px
+    classDef pacientes stroke:#4ade80,stroke-width:2px
+    classDef inventario stroke:#f472b6,stroke-width:2px
+
+    class roles,permisos,rol_permiso,usuarios,logs_auditoria,protocolos,pasos_protocolo seguridad
+    class pacientes,historias_clinicas,alergias,eventos_medicos,controles_evolucion,emergencias,emergencia_paciente,acciones_emergencia pacientes
+    class medicamentos,lotes,movimientos_inventario,tratamientos,alertas inventario
