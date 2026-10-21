@@ -41,6 +41,12 @@ public:
     void setEstadoSalud(const std::string& estadoSalud);
     std::string getEstadoSalud() const;
 
+    // No es una columna de pacientes: son las observaciones de su historia
+    // clínica, que es 1 a 1 con el paciente. Viaja aquí para que la API pueda
+    // exponer y recibir el paciente como un solo objeto.
+    void setObservaciones(const std::string& observaciones);
+    std::string getObservaciones() const;
+
 private:
     long long idPaciente_;
     long long idUsuario_;
@@ -53,4 +59,5 @@ private:
     std::string rangoCargo_;
     long long recompensa_;
     std::string estadoSalud_;
+    std::string observaciones_;
 };

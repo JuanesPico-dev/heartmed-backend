@@ -34,11 +34,64 @@ nlohmann::json aJson(const Paciente& paciente) {
     json["recompensa"] = paciente.getRecompensa();
     json["estado_salud"] = paciente.getEstadoSalud();
 
+    // Viene de la historia clínica del paciente, que es 1 a 1 con él.
+    if (paciente.getObservaciones().empty()) {
+        json["observaciones"] = nullptr;
+    } else {
+        json["observaciones"] = paciente.getObservaciones();
+    }
+
     // Alias de estado_salud: el dashboard del front lee "estado" para contar
     // pacientes activos y críticos. Se envía duplicado para no obligar al
     // front a cambiar mientras se unifica el nombre del campo.
     json["estado"] = paciente.getEstadoSalud();
     return json;
+}
+
+// Pasa el JSON recibido a un Paciente. Devuelve false y deja el motivo en
+// "error" si el cuerpo no es un objeto o algún campo tiene el tipo cambiado.
+// Lo comparten el alta y la edición, que reciben la misma forma.
+bool leerCuerpo(const std::string& textoJson, Paciente& datos, std::string& error) {
+    nlohmann::json cuerpo;
+    try {
+        cuerpo = nlohmann::json::parse(textoJson);
+    } catch (const std::exception&) {
+        error = "JSON inválido";
+        return false;
+    }
+
+    if (!cuerpo.is_object()) {
+        error = "Se esperaba un objeto JSON";
+        return false;
+    }
+
+    try {
+        datos.setDocumentoIdentidad(cuerpo.value("documento_identidad", ""));
+        datos.setNombreCompleto(cuerpo.value("nombre_completo", ""));
+        datos.setFotoPerfil(cuerpo.value("foto_perfil", ""));
+        datos.setFechaNacimiento(cuerpo.value("fecha_nacimiento", ""));
+        datos.setTipoSangre(cuerpo.value("tipo_sangre", ""));
+        datos.setRangoCargo(cuerpo.value("rango_cargo", ""));
+        datos.setRecompensa(cuerpo.value("recompensa", static_cast<long long>(0)));
+        datos.setObservaciones(cuerpo.value("observaciones", ""));
+
+        // Acepta "estado_salud" y, por comodidad del front, "estado".
+        std::string estado = cuerpo.value("estado_salud", "");
+        if (estado.empty()) {
+            estado = cuerpo.value("estado", "");
+        }
+        datos.setEstadoSalud(estado);
+
+        if (cuerpo.contains("id_usuario") && !cuerpo["id_usuario"].is_null()) {
+            datos.setIdUsuario(cuerpo["id_usuario"].get<long long>());
+        }
+    } catch (const std::exception&) {
+        error = "Alguno de los campos tiene un tipo de dato incorrecto";
+        return false;
+    }
+
+    error.clear();
+    return true;
 }
 
 }  // namespace
@@ -84,39 +137,10 @@ void PacienteRoutes::registrarRutas(crow::App<crow::CORSHandler>& app) {
                 return ApiHttp::respuestaError(401, "Token ausente o inválido");
             }
 
-            nlohmann::json cuerpoPeticion;
-            try {
-                cuerpoPeticion = nlohmann::json::parse(peticion.body);
-            } catch (const std::exception&) {
-                return ApiHttp::respuestaError(400, "JSON inválido");
-            }
-
-            if (!cuerpoPeticion.is_object()) {
-                return ApiHttp::respuestaError(400, "Se esperaba un objeto JSON");
-            }
-
             Paciente datos;
-            try {
-                datos.setDocumentoIdentidad(cuerpoPeticion.value("documento_identidad", ""));
-                datos.setNombreCompleto(cuerpoPeticion.value("nombre_completo", ""));
-                datos.setFotoPerfil(cuerpoPeticion.value("foto_perfil", ""));
-                datos.setFechaNacimiento(cuerpoPeticion.value("fecha_nacimiento", ""));
-                datos.setTipoSangre(cuerpoPeticion.value("tipo_sangre", ""));
-                datos.setRangoCargo(cuerpoPeticion.value("rango_cargo", ""));
-                datos.setRecompensa(cuerpoPeticion.value("recompensa", static_cast<long long>(0)));
-
-                // Acepta "estado_salud" y, por comodidad del front, "estado".
-                std::string estado = cuerpoPeticion.value("estado_salud", "");
-                if (estado.empty()) {
-                    estado = cuerpoPeticion.value("estado", "");
-                }
-                datos.setEstadoSalud(estado);
-
-                if (cuerpoPeticion.contains("id_usuario") && !cuerpoPeticion["id_usuario"].is_null()) {
-                    datos.setIdUsuario(cuerpoPeticion["id_usuario"].get<long long>());
-                }
-            } catch (const std::exception&) {
-                return ApiHttp::respuestaError(400, "Alguno de los campos tiene un tipo de dato incorrecto");
+            std::string errorCuerpo;
+            if (!leerCuerpo(peticion.body, datos, errorCuerpo)) {
+                return ApiHttp::respuestaError(400, errorCuerpo);
             }
 
             Paciente creado;
@@ -132,5 +156,35 @@ void PacienteRoutes::registrarRutas(crow::App<crow::CORSHandler>& app) {
             cuerpo["message"] = mensaje;
             cuerpo["paciente"] = aJson(creado);
             return crow::response(201, cuerpo.dump());
+        });
+
+    CROW_ROUTE(app, "/api/pacientes/<int>")
+        .methods(crow::HTTPMethod::Put)([this](const crow::request& peticion, int idPaciente) {
+            std::string correo;
+            std::string rol;
+            if (!ApiHttp::peticionAutorizada(peticion, correo, rol)) {
+                return ApiHttp::respuestaError(401, "Token ausente o inválido");
+            }
+
+            Paciente datos;
+            std::string errorCuerpo;
+            if (!leerCuerpo(peticion.body, datos, errorCuerpo)) {
+                return ApiHttp::respuestaError(400, errorCuerpo);
+            }
+
+            Paciente actualizado;
+            std::string mensaje;
+            const ResultadoOperacion resultado =
+                pacienteService_.actualizar(idPaciente, datos, actualizado, mensaje);
+
+            if (resultado != ResultadoOperacion::Exito) {
+                return ApiHttp::respuestaError(ApiHttp::codigoHttpDe(resultado), mensaje);
+            }
+
+            nlohmann::json cuerpo;
+            cuerpo["success"] = true;
+            cuerpo["message"] = mensaje;
+            cuerpo["paciente"] = aJson(actualizado);
+            return crow::response(200, cuerpo.dump());
         });
 }

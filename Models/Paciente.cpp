@@ -13,7 +13,8 @@ Paciente::Paciente()
       tipoSangre_(""),
       rangoCargo_(""),
       recompensa_(0),
-      estadoSalud_("") {
+      estadoSalud_(""),
+      observaciones_("") {
 }
 
 void Paciente::setIdPaciente(long long idPaciente) {
@@ -104,4 +105,12 @@ void Paciente::setEstadoSalud(const std::string& estadoSalud) {
 
 std::string Paciente::getEstadoSalud() const {
     return estadoSalud_;
+}
+
+void Paciente::setObservaciones(const std::string& observaciones) {
+    observaciones_ = observaciones;
+}
+
+std::string Paciente::getObservaciones() const {
+    return observaciones_;
 }

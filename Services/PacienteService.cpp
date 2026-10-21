@@ -103,7 +103,11 @@ ResultadoOperacion PacienteService::listar(std::vector<Paciente>& pacientes, std
     return ResultadoOperacion::Exito;
 }
 
-ResultadoOperacion PacienteService::crear(const Paciente& datos, Paciente& creado, std::string& mensaje) const {
+namespace {
+
+// Limpia, normaliza y valida los datos que llegan de la API. Devuelve el
+// paciente listo para guardar. Lo comparten el alta y la edición.
+ResultadoOperacion prepararPaciente(const Paciente& datos, Paciente& limpio, std::string& mensaje) {
     const std::string documento = limpiarTexto(datos.getDocumentoIdentidad());
     const std::string nombre = limpiarTexto(datos.getNombreCompleto());
     const std::string foto = limpiarTexto(datos.getFotoPerfil());
@@ -111,6 +115,7 @@ ResultadoOperacion PacienteService::crear(const Paciente& datos, Paciente& cread
     const std::string sangre = aMayusculas(limpiarTexto(datos.getTipoSangre()));
     const std::string rango = limpiarTexto(datos.getRangoCargo());
     const std::string estado = aMayusculas(limpiarTexto(datos.getEstadoSalud()));
+    const std::string observaciones = limpiarTexto(datos.getObservaciones());
 
     if (documento.empty() || documento.size() > 50) {
         mensaje = "El documento de identidad es obligatorio y admite máximo 50 caracteres";
@@ -152,24 +157,43 @@ ResultadoOperacion PacienteService::crear(const Paciente& datos, Paciente& cread
         return ResultadoOperacion::DatosInvalidos;
     }
 
+    if (observaciones.size() > 500) {
+        mensaje = "Las observaciones admiten máximo 500 caracteres";
+        return ResultadoOperacion::DatosInvalidos;
+    }
+
+    if (datos.tieneIdUsuario()) {
+        limpio.setIdUsuario(datos.getIdUsuario());
+    }
+    limpio.setIdPaciente(datos.getIdPaciente());
+    limpio.setDocumentoIdentidad(documento);
+    limpio.setNombreCompleto(nombre);
+    limpio.setFotoPerfil(foto);
+    limpio.setFechaNacimiento(fecha);
+    limpio.setTipoSangre(sangre);
+    limpio.setRangoCargo(rango);
+    limpio.setRecompensa(datos.getRecompensa());
+    limpio.setEstadoSalud(estado);
+    limpio.setObservaciones(observaciones);
+
+    mensaje.clear();
+    return ResultadoOperacion::Exito;
+}
+
+}  // namespace
+
+ResultadoOperacion PacienteService::crear(const Paciente& datos, Paciente& creado, std::string& mensaje) const {
+    Paciente paciente;
+    const ResultadoOperacion validacion = prepararPaciente(datos, paciente, mensaje);
+    if (validacion != ResultadoOperacion::Exito) {
+        return validacion;
+    }
+
     PacienteRepository repository;
-    if (repository.existeDocumento(documento)) {
+    if (repository.existeDocumento(paciente.getDocumentoIdentidad())) {
         mensaje = "Ya existe un paciente con ese documento de identidad";
         return ResultadoOperacion::Duplicado;
     }
-
-    Paciente paciente;
-    if (datos.tieneIdUsuario()) {
-        paciente.setIdUsuario(datos.getIdUsuario());
-    }
-    paciente.setDocumentoIdentidad(documento);
-    paciente.setNombreCompleto(nombre);
-    paciente.setFotoPerfil(foto);
-    paciente.setFechaNacimiento(fecha);
-    paciente.setTipoSangre(sangre);
-    paciente.setRangoCargo(rango);
-    paciente.setRecompensa(datos.getRecompensa());
-    paciente.setEstadoSalud(estado);
 
     long long idGenerado = 0;
     std::string error;
@@ -191,5 +215,60 @@ ResultadoOperacion PacienteService::crear(const Paciente& datos, Paciente& cread
     }
 
     mensaje = "Paciente registrado";
+    return ResultadoOperacion::Exito;
+}
+
+ResultadoOperacion PacienteService::actualizar(long long idPaciente,
+                                               const Paciente& datos,
+                                               Paciente& actualizado,
+                                               std::string& mensaje) const {
+    if (idPaciente <= 0) {
+        mensaje = "El identificador del paciente no es válido";
+        return ResultadoOperacion::DatosInvalidos;
+    }
+
+    Paciente paciente;
+    const ResultadoOperacion validacion = prepararPaciente(datos, paciente, mensaje);
+    if (validacion != ResultadoOperacion::Exito) {
+        return validacion;
+    }
+
+    paciente.setIdPaciente(idPaciente);
+
+    PacienteRepository repository;
+    if (!repository.existeId(idPaciente)) {
+        mensaje = "No existe un paciente con ese identificador";
+        return ResultadoOperacion::NoEncontrado;
+    }
+
+    if (repository.existeDocumento(paciente.getDocumentoIdentidad(), idPaciente)) {
+        mensaje = "Ya existe otro paciente con ese documento de identidad";
+        return ResultadoOperacion::Duplicado;
+    }
+
+    std::string error;
+    if (!repository.actualizar(paciente, error)) {
+        if (error.find("UNIQUE") != std::string::npos) {
+            mensaje = "Ya existe otro paciente con ese documento de identidad";
+            return ResultadoOperacion::Duplicado;
+        }
+
+        // El trigger trg_pacientes_bu_estado_salud impide cambiar el estado de
+        // salud de un paciente que ya tiene controles de evolución: ese estado
+        // se cambia registrando un control nuevo, no editando la ficha.
+        if (error.find("controles") != std::string::npos) {
+            mensaje = error;
+            return ResultadoOperacion::Conflicto;
+        }
+
+        mensaje = error.empty() ? "No se pudo actualizar el paciente" : error;
+        return ResultadoOperacion::ErrorInterno;
+    }
+
+    if (!repository.buscarPorId(idPaciente, actualizado)) {
+        actualizado = paciente;
+    }
+
+    mensaje = "Paciente actualizado";
     return ResultadoOperacion::Exito;
 }
