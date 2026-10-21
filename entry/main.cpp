@@ -12,8 +12,10 @@
 #include "Cross/Config.h"
 #include "Database/SQLite.h"
 #include "Routes/AuthRoutes.h"
+#include "Routes/InventarioRoutes.h"
 #include "Routes/PacienteRoutes.h"
 #include "Services/AuthService.h"
+#include "Services/InventarioService.h"
 #include "Services/PacienteService.h"
 
 int main() {
@@ -53,6 +55,10 @@ int main() {
     PacienteService servicioPacientes;
     PacienteRoutes rutasPacientes(servicioPacientes);
     rutasPacientes.registrarRutas(aplicacion);
+
+    InventarioService servicioInventario;
+    InventarioRoutes rutasInventario(servicioInventario);
+    rutasInventario.registrarRutas(aplicacion);
 
     CROW_ROUTE(aplicacion, "/health")([]() {
         nlohmann::json respuesta;

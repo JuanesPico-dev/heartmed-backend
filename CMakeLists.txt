@@ -37,26 +37,39 @@ add_executable(heartmed-backend
     entry/main.cpp
     Models/Usuarios.cpp
     Models/Paciente.cpp
+    Models/Lote.cpp
+    Models/Medicamento.cpp
     Repositories/UsuarioRepository.cpp
     Repositories/PacienteRepository.cpp
+    Repositories/InventarioRepository.cpp
     Services/AuthService.cpp
     Services/PacienteService.cpp
+    Services/InventarioService.cpp
     Routes/AuthRoutes.cpp
     Routes/PacienteRoutes.cpp
+    Routes/InventarioRoutes.cpp
     Database/SQLite.cpp
     Cross/Config.cpp
     Cross/PasswordHash.cpp
     Cross/JwtToken.cpp
+    Cross/ApiHttp.cpp
     Models/Paciente.h
+    Models/Lote.h
+    Models/Medicamento.h
     Repositories/UsuarioRepository.h
     Repositories/PacienteRepository.h
+    Repositories/InventarioRepository.h
     Routes/AuthRoutes.h
     Routes/PacienteRoutes.h
+    Routes/InventarioRoutes.h
     Services/PacienteService.h
+    Services/InventarioService.h
     Database/SQLite.h
     Cross/Config.h
     Cross/PasswordHash.h
     Cross/JwtToken.h
+    Cross/ApiHttp.h
+    Cross/ResultadoOperacion.h
 )
 
 target_include_directories(heartmed-backend

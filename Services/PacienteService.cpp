@@ -90,20 +90,20 @@ bool esFechaValida(const std::string& fecha) {
 
 }  // namespace
 
-ResultadoPaciente PacienteService::listar(std::vector<Paciente>& pacientes, std::string& mensaje) const {
+ResultadoOperacion PacienteService::listar(std::vector<Paciente>& pacientes, std::string& mensaje) const {
     PacienteRepository repository;
     std::string error;
 
     if (!repository.listar(pacientes, error)) {
         mensaje = error.empty() ? "No se pudo consultar la lista de pacientes" : error;
-        return ResultadoPaciente::ErrorInterno;
+        return ResultadoOperacion::ErrorInterno;
     }
 
     mensaje = "Listado de pacientes";
-    return ResultadoPaciente::Exito;
+    return ResultadoOperacion::Exito;
 }
 
-ResultadoPaciente PacienteService::crear(const Paciente& datos, Paciente& creado, std::string& mensaje) const {
+ResultadoOperacion PacienteService::crear(const Paciente& datos, Paciente& creado, std::string& mensaje) const {
     const std::string documento = limpiarTexto(datos.getDocumentoIdentidad());
     const std::string nombre = limpiarTexto(datos.getNombreCompleto());
     const std::string foto = limpiarTexto(datos.getFotoPerfil());
@@ -114,48 +114,48 @@ ResultadoPaciente PacienteService::crear(const Paciente& datos, Paciente& creado
 
     if (documento.empty() || documento.size() > 50) {
         mensaje = "El documento de identidad es obligatorio y admite máximo 50 caracteres";
-        return ResultadoPaciente::DatosInvalidos;
+        return ResultadoOperacion::DatosInvalidos;
     }
 
     if (nombre.size() < 2 || nombre.size() > 150) {
         mensaje = "El nombre completo debe tener entre 2 y 150 caracteres";
-        return ResultadoPaciente::DatosInvalidos;
+        return ResultadoOperacion::DatosInvalidos;
     }
 
     if (foto.size() > 255) {
         mensaje = "La foto de perfil admite máximo 255 caracteres";
-        return ResultadoPaciente::DatosInvalidos;
+        return ResultadoOperacion::DatosInvalidos;
     }
 
     if (!esFechaValida(fecha)) {
         mensaje = "La fecha de nacimiento debe tener el formato YYYY-MM-DD y ser una fecha real";
-        return ResultadoPaciente::DatosInvalidos;
+        return ResultadoOperacion::DatosInvalidos;
     }
 
     if (!estaEnLista(sangre, TIPOS_SANGRE)) {
         mensaje = "El tipo de sangre debe ser uno de: " + listaComoTexto(TIPOS_SANGRE);
-        return ResultadoPaciente::DatosInvalidos;
+        return ResultadoOperacion::DatosInvalidos;
     }
 
     if (rango.empty() || rango.size() > 50) {
         mensaje = "El rango o cargo es obligatorio y admite máximo 50 caracteres";
-        return ResultadoPaciente::DatosInvalidos;
+        return ResultadoOperacion::DatosInvalidos;
     }
 
     if (datos.getRecompensa() < 0) {
         mensaje = "La recompensa no puede ser negativa";
-        return ResultadoPaciente::DatosInvalidos;
+        return ResultadoOperacion::DatosInvalidos;
     }
 
     if (!estaEnLista(estado, ESTADOS_SALUD)) {
         mensaje = "El estado de salud debe ser uno de: " + listaComoTexto(ESTADOS_SALUD);
-        return ResultadoPaciente::DatosInvalidos;
+        return ResultadoOperacion::DatosInvalidos;
     }
 
     PacienteRepository repository;
     if (repository.existeDocumento(documento)) {
         mensaje = "Ya existe un paciente con ese documento de identidad";
-        return ResultadoPaciente::Duplicado;
+        return ResultadoOperacion::Duplicado;
     }
 
     Paciente paciente;
@@ -178,11 +178,11 @@ ResultadoPaciente PacienteService::crear(const Paciente& datos, Paciente& creado
         // entran a la vez: la base es la que manda, no la comprobación previa.
         if (error.find("UNIQUE") != std::string::npos) {
             mensaje = "Ya existe un paciente con ese documento de identidad";
-            return ResultadoPaciente::Duplicado;
+            return ResultadoOperacion::Duplicado;
         }
 
         mensaje = error.empty() ? "No se pudo registrar el paciente" : error;
-        return ResultadoPaciente::ErrorInterno;
+        return ResultadoOperacion::ErrorInterno;
     }
 
     if (!repository.buscarPorId(idGenerado, creado)) {
@@ -191,5 +191,5 @@ ResultadoPaciente PacienteService::crear(const Paciente& datos, Paciente& creado
     }
 
     mensaje = "Paciente registrado";
-    return ResultadoPaciente::Exito;
+    return ResultadoOperacion::Exito;
 }

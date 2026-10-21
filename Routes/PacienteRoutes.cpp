@@ -4,31 +4,10 @@
 #include <string>
 #include <vector>
 
-#include "Cross/JwtToken.h"
+#include "Cross/ApiHttp.h"
 #include "Models/Paciente.h"
 
 namespace {
-
-// Lee el "Authorization: Bearer <token>" y lo valida. Sin token válido no se
-// devuelven datos clínicos.
-bool peticionAutorizada(const crow::request& peticion, std::string& correo, std::string& rol) {
-    const std::string cabecera = peticion.get_header_value("Authorization");
-    const std::string prefijo = "Bearer ";
-
-    if (cabecera.size() <= prefijo.size() || cabecera.compare(0, prefijo.size(), prefijo) != 0) {
-        return false;
-    }
-
-    const std::string token = cabecera.substr(prefijo.size());
-    return TokenJwt::validar(token, correo, rol);
-}
-
-crow::response respuestaError(int codigo, const std::string& mensaje) {
-    nlohmann::json cuerpo;
-    cuerpo["success"] = false;
-    cuerpo["message"] = mensaje;
-    return crow::response(codigo, cuerpo.dump());
-}
 
 nlohmann::json aJson(const Paciente& paciente) {
     nlohmann::json json;
@@ -62,21 +41,6 @@ nlohmann::json aJson(const Paciente& paciente) {
     return json;
 }
 
-// Mapea el resultado del servicio al código HTTP que le corresponde.
-int codigoHttpDe(ResultadoPaciente resultado) {
-    switch (resultado) {
-        case ResultadoPaciente::Exito:
-            return 200;
-        case ResultadoPaciente::DatosInvalidos:
-            return 400;
-        case ResultadoPaciente::Duplicado:
-            return 409;
-        case ResultadoPaciente::ErrorInterno:
-        default:
-            return 500;
-    }
-}
-
 }  // namespace
 
 PacienteRoutes::PacienteRoutes(PacienteService& pacienteService)
@@ -88,16 +52,16 @@ void PacienteRoutes::registrarRutas(crow::App<crow::CORSHandler>& app) {
         .methods(crow::HTTPMethod::Get)([this](const crow::request& peticion) {
             std::string correo;
             std::string rol;
-            if (!peticionAutorizada(peticion, correo, rol)) {
-                return respuestaError(401, "Token ausente o inválido");
+            if (!ApiHttp::peticionAutorizada(peticion, correo, rol)) {
+                return ApiHttp::respuestaError(401, "Token ausente o inválido");
             }
 
             std::vector<Paciente> pacientes;
             std::string mensaje;
-            const ResultadoPaciente resultado = pacienteService_.listar(pacientes, mensaje);
+            const ResultadoOperacion resultado = pacienteService_.listar(pacientes, mensaje);
 
-            if (resultado != ResultadoPaciente::Exito) {
-                return respuestaError(codigoHttpDe(resultado), mensaje);
+            if (resultado != ResultadoOperacion::Exito) {
+                return ApiHttp::respuestaError(ApiHttp::codigoHttpDe(resultado), mensaje);
             }
 
             nlohmann::json lista = nlohmann::json::array();
@@ -116,19 +80,19 @@ void PacienteRoutes::registrarRutas(crow::App<crow::CORSHandler>& app) {
         .methods(crow::HTTPMethod::Post)([this](const crow::request& peticion) {
             std::string correo;
             std::string rol;
-            if (!peticionAutorizada(peticion, correo, rol)) {
-                return respuestaError(401, "Token ausente o inválido");
+            if (!ApiHttp::peticionAutorizada(peticion, correo, rol)) {
+                return ApiHttp::respuestaError(401, "Token ausente o inválido");
             }
 
             nlohmann::json cuerpoPeticion;
             try {
                 cuerpoPeticion = nlohmann::json::parse(peticion.body);
             } catch (const std::exception&) {
-                return respuestaError(400, "JSON inválido");
+                return ApiHttp::respuestaError(400, "JSON inválido");
             }
 
             if (!cuerpoPeticion.is_object()) {
-                return respuestaError(400, "Se esperaba un objeto JSON");
+                return ApiHttp::respuestaError(400, "Se esperaba un objeto JSON");
             }
 
             Paciente datos;
@@ -152,15 +116,15 @@ void PacienteRoutes::registrarRutas(crow::App<crow::CORSHandler>& app) {
                     datos.setIdUsuario(cuerpoPeticion["id_usuario"].get<long long>());
                 }
             } catch (const std::exception&) {
-                return respuestaError(400, "Alguno de los campos tiene un tipo de dato incorrecto");
+                return ApiHttp::respuestaError(400, "Alguno de los campos tiene un tipo de dato incorrecto");
             }
 
             Paciente creado;
             std::string mensaje;
-            const ResultadoPaciente resultado = pacienteService_.crear(datos, creado, mensaje);
+            const ResultadoOperacion resultado = pacienteService_.crear(datos, creado, mensaje);
 
-            if (resultado != ResultadoPaciente::Exito) {
-                return respuestaError(codigoHttpDe(resultado), mensaje);
+            if (resultado != ResultadoOperacion::Exito) {
+                return ApiHttp::respuestaError(ApiHttp::codigoHttpDe(resultado), mensaje);
             }
 
             nlohmann::json cuerpo;
