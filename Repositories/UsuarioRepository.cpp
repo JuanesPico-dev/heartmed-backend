@@ -157,3 +157,33 @@ bool UsuarioRepository::validarCredenciales(const std::string& email, const std:
 bool UsuarioRepository::buscarPorCorreoYPassword(const std::string& email, const std::string& password) const {
     return existeUsuario(email) && validarCredenciales(email, password);
 }
+
+long long UsuarioRepository::obtenerIdPorCorreo(const std::string& email) const {
+    const std::string correo = limpiarTexto(email);
+    if (correo.empty()) {
+        return 0;
+    }
+
+    sqlite3* conexion = BaseDatosSqlite::instancia().obtenerConexion();
+    if (conexion == nullptr || !BaseDatosSqlite::instancia().estaAbierta()) {
+        return 0;
+    }
+
+    const std::string sql =
+        "SELECT id_usuario FROM usuarios WHERE LOWER(correo) = LOWER(?) AND activo = 1 LIMIT 1;";
+
+    sqlite3_stmt* sentencia = nullptr;
+    if (sqlite3_prepare_v2(conexion, sql.c_str(), -1, &sentencia, nullptr) != SQLITE_OK) {
+        return 0;
+    }
+
+    sqlite3_bind_text(sentencia, 1, correo.c_str(), static_cast<int>(correo.size()), SQLITE_TRANSIENT);
+
+    long long idUsuario = 0;
+    if (sqlite3_step(sentencia) == SQLITE_ROW) {
+        idUsuario = sqlite3_column_int64(sentencia, 0);
+    }
+
+    sqlite3_finalize(sentencia);
+    return idUsuario;
+}

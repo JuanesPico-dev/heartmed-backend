@@ -13,9 +13,11 @@
 #include "Database/SQLite.h"
 #include "Routes/AuthRoutes.h"
 #include "Routes/InventarioRoutes.h"
+#include "Routes/MovimientoRoutes.h"
 #include "Routes/PacienteRoutes.h"
 #include "Services/AuthService.h"
 #include "Services/InventarioService.h"
+#include "Services/MovimientoService.h"
 #include "Services/PacienteService.h"
 
 int main() {
@@ -59,6 +61,10 @@ int main() {
     InventarioService servicioInventario;
     InventarioRoutes rutasInventario(servicioInventario);
     rutasInventario.registrarRutas(aplicacion);
+
+    MovimientoService servicioMovimientos;
+    MovimientoRoutes rutasMovimientos(servicioMovimientos);
+    rutasMovimientos.registrarRutas(aplicacion);
 
     CROW_ROUTE(aplicacion, "/health")([]() {
         nlohmann::json respuesta;

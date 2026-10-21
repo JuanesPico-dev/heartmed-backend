@@ -39,15 +39,19 @@ add_executable(heartmed-backend
     Models/Paciente.cpp
     Models/Lote.cpp
     Models/Medicamento.cpp
+    Models/MovimientoInventario.cpp
     Repositories/UsuarioRepository.cpp
     Repositories/PacienteRepository.cpp
     Repositories/InventarioRepository.cpp
+    Repositories/MovimientoRepository.cpp
     Services/AuthService.cpp
     Services/PacienteService.cpp
     Services/InventarioService.cpp
+    Services/MovimientoService.cpp
     Routes/AuthRoutes.cpp
     Routes/PacienteRoutes.cpp
     Routes/InventarioRoutes.cpp
+    Routes/MovimientoRoutes.cpp
     Database/SQLite.cpp
     Cross/Config.cpp
     Cross/PasswordHash.cpp
@@ -56,14 +60,18 @@ add_executable(heartmed-backend
     Models/Paciente.h
     Models/Lote.h
     Models/Medicamento.h
+    Models/MovimientoInventario.h
     Repositories/UsuarioRepository.h
     Repositories/PacienteRepository.h
     Repositories/InventarioRepository.h
+    Repositories/MovimientoRepository.h
     Routes/AuthRoutes.h
     Routes/PacienteRoutes.h
     Routes/InventarioRoutes.h
+    Routes/MovimientoRoutes.h
     Services/PacienteService.h
     Services/InventarioService.h
+    Services/MovimientoService.h
     Database/SQLite.h
     Cross/Config.h
     Cross/PasswordHash.h
