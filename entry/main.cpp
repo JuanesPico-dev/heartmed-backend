@@ -12,13 +12,19 @@
 #include "Cross/Config.h"
 #include "Database/SQLite.h"
 #include "Routes/AuthRoutes.h"
+#include "Routes/PacienteRoutes.h"
 #include "Services/AuthService.h"
+#include "Services/PacienteService.h"
 
 int main() {
     const std::filesystem::path rutaArchivoEnv = ".env";
     Configuracion::instancia().cargarDesdeArchivo(rutaArchivoEnv.string());
 
-    const std::string rutaBaseDatos = Configuracion::instancia().obtenerCadena("DB_PATH", "./heartmed_db.sqlite3");
+    // La copia de ./heartmed_db.sqlite3 solo tiene 7 tablas (usuarios, roles y
+    // auditoría). El esquema completo, con pacientes e historias clínicas, es
+    // el de Database/. Se puede sobrescribir con DB_PATH en el .env.
+    const std::string rutaBaseDatos =
+        Configuracion::instancia().obtenerCadena("DB_PATH", "./Database/heartmed_db.sqlite3");
     BaseDatosSqlite::instancia().abrir(rutaBaseDatos);
 
     const char* puertoEntorno = std::getenv("PORT");
@@ -43,6 +49,10 @@ int main() {
     AuthService servicioAutenticacion;
     AuthRoutes rutasAutenticacion(servicioAutenticacion);
     rutasAutenticacion.registrarRutas(aplicacion);
+
+    PacienteService servicioPacientes;
+    PacienteRoutes rutasPacientes(servicioPacientes);
+    rutasPacientes.registrarRutas(aplicacion);
 
     CROW_ROUTE(aplicacion, "/health")([]() {
         nlohmann::json respuesta;

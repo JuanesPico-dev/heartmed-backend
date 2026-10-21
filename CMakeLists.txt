@@ -36,15 +36,23 @@ endif()
 add_executable(heartmed-backend
     entry/main.cpp
     Models/Usuarios.cpp
+    Models/Paciente.cpp
     Repositories/UsuarioRepository.cpp
+    Repositories/PacienteRepository.cpp
     Services/AuthService.cpp
+    Services/PacienteService.cpp
     Routes/AuthRoutes.cpp
+    Routes/PacienteRoutes.cpp
     Database/SQLite.cpp
     Cross/Config.cpp
     Cross/PasswordHash.cpp
     Cross/JwtToken.cpp
+    Models/Paciente.h
     Repositories/UsuarioRepository.h
+    Repositories/PacienteRepository.h
     Routes/AuthRoutes.h
+    Routes/PacienteRoutes.h
+    Services/PacienteService.h
     Database/SQLite.h
     Cross/Config.h
     Cross/PasswordHash.h

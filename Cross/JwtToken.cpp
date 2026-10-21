@@ -3,6 +3,8 @@
 #include <openssl/sha.h>
 
 #include <chrono>
+#include <cstddef>
+#include <exception>
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -57,8 +59,11 @@ bool TokenJwt::validar(const std::string& token, std::string& correo, std::strin
         return false;
     }
 
+    // El correo lleva puntos ("law@heartpirates.com"), así que el token se parte
+    // en más de cinco trozos. Las piezas fijas se cuentan desde el final
+    // (rol, expiración y firma) y lo que queda en medio es el correo.
     const std::vector<std::string> partes = dividir(token, '.');
-    if (partes.size() != 5) {
+    if (partes.size() < 5) {
         return false;
     }
 
@@ -66,8 +71,24 @@ bool TokenJwt::validar(const std::string& token, std::string& correo, std::strin
         return false;
     }
 
+    const std::size_t indiceFirma = partes.size() - 1;
+    const std::size_t indiceExpiracion = partes.size() - 2;
+    const std::size_t indiceRol = partes.size() - 3;
+
+    std::string correoToken = partes[1];
+    for (std::size_t i = 2; i < indiceRol; ++i) {
+        correoToken += "." + partes[i];
+    }
+
     const std::string secreto = Configuracion::instancia().obtenerCadena("JWT_SECRET", "secret_de_prueba");
-    const long long expiracionUnix = std::stoll(partes[3]);
+
+    long long expiracionUnix = 0;
+    try {
+        expiracionUnix = std::stoll(partes[indiceExpiracion]);
+    } catch (const std::exception&) {
+        return false;
+    }
+
     const auto ahora = std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::system_clock::now().time_since_epoch()
     ).count();
@@ -76,12 +97,12 @@ bool TokenJwt::validar(const std::string& token, std::string& correo, std::strin
         return false;
     }
 
-    const std::string firmaEsperada = firmaTokenPrueba(secreto, partes[1], partes[2], expiracionUnix);
-    if (firmaEsperada != partes[4]) {
+    const std::string firmaEsperada = firmaTokenPrueba(secreto, correoToken, partes[indiceRol], expiracionUnix);
+    if (firmaEsperada != partes[indiceFirma]) {
         return false;
     }
 
-    correo = partes[1];
-    rol = partes[2];
+    correo = correoToken;
+    rol = partes[indiceRol];
     return true;
 }
