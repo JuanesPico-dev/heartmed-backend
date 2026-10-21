@@ -25,9 +25,7 @@ int main() {
     const std::filesystem::path rutaArchivoEnv = ".env";
     Configuracion::instancia().cargarDesdeArchivo(rutaArchivoEnv.string());
 
-    // La copia de ./heartmed_db.sqlite3 solo tiene 7 tablas (usuarios, roles y
-    // auditoría). El esquema completo, con pacientes e historias clínicas, es
-    // el de Database/. Se puede sobrescribir con DB_PATH en el .env.
+    // Usa la DB completa del proyecto si no viene en .env.
     const std::string rutaBaseDatos =
         Configuracion::instancia().obtenerCadena("DB_PATH", "./Database/heartmed_db.sqlite3");
     BaseDatosSqlite::instancia().abrir(rutaBaseDatos);

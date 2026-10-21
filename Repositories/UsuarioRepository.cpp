@@ -187,3 +187,39 @@ long long UsuarioRepository::obtenerIdPorCorreo(const std::string& email) const 
     sqlite3_finalize(sentencia);
     return idUsuario;
 }
+
+std::string UsuarioRepository::ObtenerRolUsuario(const std::string& email) const {
+    const std::string correo = limpiarTexto(email);
+    if (correo.empty()) {
+        return "";
+    }
+
+    sqlite3* conexion = BaseDatosSqlite::instancia().obtenerConexion();
+    if (conexion == nullptr || !BaseDatosSqlite::instancia().estaAbierta()) {
+        return "";
+    }
+
+    const std::string sql =
+        "SELECT r.nombre_rol "
+        "FROM usuarios u "
+        "JOIN roles r ON r.id_rol = u.id_rol "
+        "WHERE LOWER(u.correo) = LOWER(?) AND u.activo = 1 LIMIT 1;";
+
+    sqlite3_stmt* sentencia = nullptr;
+    if (sqlite3_prepare_v2(conexion, sql.c_str(), -1, &sentencia, nullptr) != SQLITE_OK) {
+        return "";
+    }
+
+    sqlite3_bind_text(sentencia, 1, correo.c_str(), static_cast<int>(correo.size()), SQLITE_TRANSIENT);
+
+    std::string rolUsuario;
+    if (sqlite3_step(sentencia) == SQLITE_ROW) {
+        const unsigned char* valor = sqlite3_column_text(sentencia, 0);
+        if (valor != nullptr) {
+            rolUsuario = reinterpret_cast<const char*>(valor);
+        }
+    }
+
+    sqlite3_finalize(sentencia);
+    return rolUsuario;
+}

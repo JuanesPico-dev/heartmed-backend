@@ -37,9 +37,7 @@ nlohmann::json aJson(const Medicamento& medicamento) {
     json["umbral_minimo"] = medicamento.getUmbralMinimo();
     json["bajo_minimo"] = medicamento.estaBajoMinimo();
 
-    // Alias que espera el dashboard del front, que lee "cantidad" y
-    // "stock_minimo". Se envían duplicados para no obligarlo a cambiar
-    // mientras se unifican los nombres de los campos.
+    // Alias para compatibilidad con el frontend.
     json["cantidad"] = medicamento.getCantidadTotalDisponible();
     json["stock_minimo"] = medicamento.getUmbralMinimo();
 
@@ -86,8 +84,7 @@ void InventarioRoutes::registrarRutas(crow::App<crow::CORSHandler>& app) {
             cuerpo["total"] = resumen.total;
             cuerpo["bajo_minimo"] = resumen.bajoMinimo;
 
-            // Sin insumos registrados no hay porcentaje que calcular: va null
-            // para que el front distinga "0 %" de "todavía no hay datos".
+            // Si no hay datos, devuelve null para diferenciarlo de 0%.
             if (resumen.hayDatos) {
                 cuerpo["porcentaje"] = resumen.porcentajeDisponibilidad;
             } else {

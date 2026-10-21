@@ -30,9 +30,7 @@ bool BaseDatosSqlite::abrir(const std::string& ruta) {
         return false;
     }
 
-    // SQLite trae las claves foráneas desactivadas por defecto y hay que pedirlo
-    // en cada conexión. El esquema las usa (p. ej. historias_clinicas apunta a
-    // pacientes), así que sin esto las relaciones no se verifican al escribir.
+    // SQLite desactiva FK por defecto; lo habilitamos en cada conexión.
     sqlite3_exec(conexion_, "PRAGMA foreign_keys = ON;", nullptr, nullptr, nullptr);
 
     rutaBaseDatos_ = ruta;

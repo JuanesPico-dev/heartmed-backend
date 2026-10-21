@@ -34,23 +34,19 @@ nlohmann::json aJson(const Paciente& paciente) {
     json["recompensa"] = paciente.getRecompensa();
     json["estado_salud"] = paciente.getEstadoSalud();
 
-    // Viene de la historia clínica del paciente, que es 1 a 1 con él.
+    // Observaciones de la historia clínica del paciente.
     if (paciente.getObservaciones().empty()) {
         json["observaciones"] = nullptr;
     } else {
         json["observaciones"] = paciente.getObservaciones();
     }
 
-    // Alias de estado_salud: el dashboard del front lee "estado" para contar
-    // pacientes activos y críticos. Se envía duplicado para no obligar al
-    // front a cambiar mientras se unifica el nombre del campo.
+    // Alias para compatibilidad con el frontend.
     json["estado"] = paciente.getEstadoSalud();
     return json;
 }
 
-// Pasa el JSON recibido a un Paciente. Devuelve false y deja el motivo en
-// "error" si el cuerpo no es un objeto o algún campo tiene el tipo cambiado.
-// Lo comparten el alta y la edición, que reciben la misma forma.
+// Convierte el JSON del request a un Paciente.
 bool leerCuerpo(const std::string& textoJson, Paciente& datos, std::string& error) {
     nlohmann::json cuerpo;
     try {
@@ -75,7 +71,7 @@ bool leerCuerpo(const std::string& textoJson, Paciente& datos, std::string& erro
         datos.setRecompensa(cuerpo.value("recompensa", static_cast<long long>(0)));
         datos.setObservaciones(cuerpo.value("observaciones", ""));
 
-        // Acepta "estado_salud" y, por comodidad del front, "estado".
+        // Acepta ambos nombres de campo.
         std::string estado = cuerpo.value("estado_salud", "");
         if (estado.empty()) {
             estado = cuerpo.value("estado", "");

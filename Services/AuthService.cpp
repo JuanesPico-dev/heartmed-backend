@@ -36,16 +36,6 @@ bool tieneFormatoEmailValido(const std::string& email) {
            puntoDespuesDeArroba + 1 < email.size();
 }
 
-std::string resolverRolUsuario(const std::string& email) {
-    UsuarioRepository repository;
-    std::string nombre;
-    if (!repository.buscarPorCorreo(email, nombre)) {
-        return "usuario";
-    }
-
-    return "usuario";
-}
-
 }  // namespace
 
 bool AuthService::login(const std::string& email, const std::string& password) {
@@ -71,7 +61,7 @@ bool AuthService::login(const std::string& email, const std::string& password, s
         return false;
     }
 
-    rol = "usuario";
+    rol = repository.ObtenerRolUsuario(correo);
     token = TokenJwt::generar(correo, rol);
     return true;
 }

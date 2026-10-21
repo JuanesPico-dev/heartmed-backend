@@ -12,4 +12,5 @@ public:
     bool buscarPorCorreoYPassword(const std::string& email, const std::string& password) const;
     std::string obtenerHashContrasena(const std::string& email) const;
     bool usuarioActivo(const std::string& email) const;
+    std::string ObtenerRolUsuario(const std::string& email) const;
 };
