@@ -36,11 +36,17 @@ int codigoHttpDe(ResultadoOperacion resultado) {
     }
 }
 
+crow::response respuestaJson(int codigo, const std::string& cuerpo) {
+    crow::response respuesta(codigo, cuerpo);
+    respuesta.set_header("Content-Type", "application/json; charset=utf-8");
+    return respuesta;
+}
+
 crow::response respuestaError(int codigo, const std::string& mensaje) {
     nlohmann::json cuerpo;
     cuerpo["success"] = false;
     cuerpo["message"] = mensaje;
-    return crow::response(codigo, cuerpo.dump());
+    return respuestaJson(codigo, cuerpo.dump());
 }
 
 }  // namespace ApiHttp

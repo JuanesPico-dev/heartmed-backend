@@ -95,6 +95,6 @@ void InventarioRoutes::registrarRutas(crow::App<crow::CORSHandler>& app) {
             }
 
             cuerpo["items"] = items;
-            return crow::response(200, cuerpo.dump());
+            return ApiHttp::respuestaJson(200, cuerpo.dump());
         });
 }

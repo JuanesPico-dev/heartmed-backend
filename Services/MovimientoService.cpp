@@ -137,3 +137,27 @@ ResultadoOperacion MovimientoService::registrar(const MovimientoInventario& dato
     mensaje = "Movimiento registrado";
     return ResultadoOperacion::Exito;
 }
+
+ResultadoOperacion MovimientoService::listar(long long limite,
+                                             std::vector<MovimientoDetallado>& movimientos,
+                                             std::string& mensaje) const {
+    // Sin tope la consulta crecería sin control según se use el sistema, y el
+    // historial completo no cabe en una pantalla.
+    const long long LIMITE_POR_DEFECTO = 50;
+    const long long LIMITE_MAXIMO = 200;
+
+    long long limiteEfectivo = limite <= 0 ? LIMITE_POR_DEFECTO : limite;
+    if (limiteEfectivo > LIMITE_MAXIMO) {
+        limiteEfectivo = LIMITE_MAXIMO;
+    }
+
+    MovimientoRepository repository;
+    std::string error;
+    if (!repository.listar(limiteEfectivo, movimientos, error)) {
+        mensaje = error.empty() ? "No se pudo consultar el historial de movimientos" : error;
+        return ResultadoOperacion::ErrorInterno;
+    }
+
+    mensaje = "Historial de movimientos";
+    return ResultadoOperacion::Exito;
+}

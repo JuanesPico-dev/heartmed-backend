@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "Models/MovimientoInventario.h"
 
@@ -18,8 +19,22 @@ struct StockResultante {
     long long umbralMinimo;
 };
 
+// Un movimiento con los nombres ya resueltos, para listarlo sin obligar al
+// cliente a cruzar lotes, medicamentos y usuarios por su cuenta.
+struct MovimientoDetallado {
+    MovimientoDetallado();
+
+    MovimientoInventario movimiento;
+    std::string numLote;
+    long long idMedicamento;
+    std::string nombreMedicamento;
+    std::string unidadMedida;
+    std::string nombreUsuario;
+};
+
 class MovimientoRepository {
 public:
+    bool listar(long long limite, std::vector<MovimientoDetallado>& movimientos, std::string& error) const;
     bool existeLote(long long idLote) const;
     bool existeTratamiento(long long idTratamiento) const;
     // Inserta el movimiento. No actualiza el stock: de eso se encargan los

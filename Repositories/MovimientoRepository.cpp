@@ -182,3 +182,72 @@ bool MovimientoRepository::obtenerStock(long long idLote, StockResultante& stock
     sqlite3_finalize(sentencia);
     return encontrado;
 }
+
+MovimientoDetallado::MovimientoDetallado()
+    : numLote(""),
+      idMedicamento(0),
+      nombreMedicamento(""),
+      unidadMedida(""),
+      nombreUsuario("") {
+}
+
+bool MovimientoRepository::listar(long long limite,
+                                  std::vector<MovimientoDetallado>& movimientos,
+                                  std::string& error) const {
+    sqlite3* conexion = BaseDatosSqlite::instancia().obtenerConexion();
+    if (conexion == nullptr || !BaseDatosSqlite::instancia().estaAbierta()) {
+        error = "La base de datos no está disponible";
+        return false;
+    }
+
+    // Del más reciente al más antiguo: en un libro de movimientos lo último es
+    // lo que interesa. El id desempata los que comparten fecha.
+    const std::string sql =
+        "SELECT m.id_movimiento, m.id_lote, m.id_usuario, m.id_tratamiento, m.tipo_movimiento, "
+        "       m.cantidad, m.fecha_movimiento, m.motivo, "
+        "       l.num_lote, med.id_medicamento, med.nombre, med.unidad_medida, u.nombre "
+        "FROM movimientos_inventario m "
+        "JOIN lotes l ON l.id_lote = m.id_lote "
+        "JOIN medicamentos med ON med.id_medicamento = l.id_medicamento "
+        "JOIN usuarios u ON u.id_usuario = m.id_usuario "
+        "ORDER BY m.fecha_movimiento DESC, m.id_movimiento DESC LIMIT ?;";
+
+    sqlite3_stmt* sentencia = nullptr;
+    if (sqlite3_prepare_v2(conexion, sql.c_str(), -1, &sentencia, nullptr) != SQLITE_OK) {
+        error = sqlite3_errmsg(conexion);
+        return false;
+    }
+
+    sqlite3_bind_int64(sentencia, 1, limite);
+
+    movimientos.clear();
+    while (sqlite3_step(sentencia) == SQLITE_ROW) {
+        MovimientoDetallado detalle;
+        detalle.movimiento.setIdMovimiento(sqlite3_column_int64(sentencia, 0));
+        detalle.movimiento.setIdLote(sqlite3_column_int64(sentencia, 1));
+        detalle.movimiento.setIdUsuario(sqlite3_column_int64(sentencia, 2));
+
+        if (sqlite3_column_type(sentencia, 3) == SQLITE_NULL) {
+            detalle.movimiento.quitarIdTratamiento();
+        } else {
+            detalle.movimiento.setIdTratamiento(sqlite3_column_int64(sentencia, 3));
+        }
+
+        detalle.movimiento.setTipoMovimiento(leerTexto(sentencia, 4));
+        detalle.movimiento.setCantidad(sqlite3_column_int64(sentencia, 5));
+        detalle.movimiento.setFechaMovimiento(leerTexto(sentencia, 6));
+        detalle.movimiento.setMotivo(leerTexto(sentencia, 7));
+
+        detalle.numLote = leerTexto(sentencia, 8);
+        detalle.idMedicamento = sqlite3_column_int64(sentencia, 9);
+        detalle.nombreMedicamento = leerTexto(sentencia, 10);
+        detalle.unidadMedida = leerTexto(sentencia, 11);
+        detalle.nombreUsuario = leerTexto(sentencia, 12);
+
+        movimientos.push_back(detalle);
+    }
+
+    sqlite3_finalize(sentencia);
+    error.clear();
+    return true;
+}

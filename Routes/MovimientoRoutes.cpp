@@ -48,6 +48,16 @@ nlohmann::json aJson(const StockResultante& stock) {
     return json;
 }
 
+nlohmann::json aJson(const MovimientoDetallado& detalle) {
+    nlohmann::json json = aJson(detalle.movimiento);
+    json["num_lote"] = detalle.numLote;
+    json["id_medicamento"] = detalle.idMedicamento;
+    json["nombre_medicamento"] = detalle.nombreMedicamento;
+    json["unidad_medida"] = detalle.unidadMedida;
+    json["nombre_usuario"] = detalle.nombreUsuario;
+    return json;
+}
+
 }  // namespace
 
 MovimientoRoutes::MovimientoRoutes(MovimientoService& movimientoService)
@@ -55,6 +65,45 @@ MovimientoRoutes::MovimientoRoutes(MovimientoService& movimientoService)
 }
 
 void MovimientoRoutes::registrarRutas(crow::App<crow::CORSHandler>& app) {
+    CROW_ROUTE(app, "/api/movimientos")
+        .methods(crow::HTTPMethod::Get)([this](const crow::request& peticion) {
+            std::string correo;
+            std::string rol;
+            if (!ApiHttp::peticionAutorizada(peticion, correo, rol)) {
+                return ApiHttp::respuestaError(401, "Token ausente o inválido");
+            }
+
+            // ?limite=N acota el historial; el servicio aplica su tope.
+            long long limite = 0;
+            const char* parametroLimite = peticion.url_params.get("limite");
+            if (parametroLimite != nullptr) {
+                try {
+                    limite = std::stoll(parametroLimite);
+                } catch (const std::exception&) {
+                    return ApiHttp::respuestaError(400, "El parámetro limite debe ser un número");
+                }
+            }
+
+            std::vector<MovimientoDetallado> movimientos;
+            std::string mensaje;
+            const ResultadoOperacion resultado = movimientoService_.listar(limite, movimientos, mensaje);
+
+            if (resultado != ResultadoOperacion::Exito) {
+                return ApiHttp::respuestaError(ApiHttp::codigoHttpDe(resultado), mensaje);
+            }
+
+            nlohmann::json lista = nlohmann::json::array();
+            for (const MovimientoDetallado& detalle : movimientos) {
+                lista.push_back(aJson(detalle));
+            }
+
+            nlohmann::json cuerpo;
+            cuerpo["success"] = true;
+            cuerpo["total"] = lista.size();
+            cuerpo["movimientos"] = lista;
+            return ApiHttp::respuestaJson(200, cuerpo.dump());
+        });
+
     CROW_ROUTE(app, "/api/movimientos")
         .methods(crow::HTTPMethod::Post)([this](const crow::request& peticion) {
             std::string correo;
@@ -106,6 +155,6 @@ void MovimientoRoutes::registrarRutas(crow::App<crow::CORSHandler>& app) {
             cuerpo["message"] = mensaje;
             cuerpo["movimiento"] = aJson(registrado);
             cuerpo["stock"] = aJson(stock);
-            return crow::response(201, cuerpo.dump());
+            return ApiHttp::respuestaJson(201, cuerpo.dump());
         });
 }

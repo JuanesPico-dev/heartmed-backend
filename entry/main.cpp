@@ -9,6 +9,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "Cross/ApiHttp.h"
 #include "Cross/Config.h"
 #include "Database/SQLite.h"
 #include "Routes/AuthRoutes.h"
@@ -70,7 +71,7 @@ int main() {
         nlohmann::json respuesta;
         respuesta["status"] = "ok";
         respuesta["service"] = "heartmed-backend";
-        return crow::response(respuesta.dump());
+        return ApiHttp::respuestaJson(200, respuesta.dump());
     });
 
     CROW_ROUTE(aplicacion, "/api/health")([]() {
@@ -78,7 +79,7 @@ int main() {
         respuesta["status"] = "ok";
         respuesta["message"] = "Backend de HeartMed funcionando";
         respuesta["database"] = Configuracion::instancia().obtenerCadena("DB_NAME", "heartmed_db");
-        return crow::response(respuesta.dump());
+        return ApiHttp::respuestaJson(200, respuesta.dump());
     });
 
     std::cout << "Configuración cargada desde .env" << std::endl;

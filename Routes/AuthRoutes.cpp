@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
+#include "Cross/ApiHttp.h"
 #include "Cross/JwtToken.h"
 
 AuthRoutes::AuthRoutes(AuthService& authService)
@@ -31,12 +32,12 @@ void AuthRoutes::registrarRutas(crow::App<crow::CORSHandler>& app) {
                     response["email"] = email;
                 }
 
-                return crow::response(ok ? 200 : 401, response.dump());
+                return ApiHttp::respuestaJson(ok ? 200 : 401, response.dump());
             } catch (const std::exception&) {
                 nlohmann::json response;
                 response["success"] = false;
                 response["message"] = "JSON inválido";
-                return crow::response(400, response.dump());
+                return ApiHttp::respuestaJson(400, response.dump());
             }
         });
 }

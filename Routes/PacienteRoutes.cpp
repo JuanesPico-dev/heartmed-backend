@@ -126,7 +126,7 @@ void PacienteRoutes::registrarRutas(crow::App<crow::CORSHandler>& app) {
             cuerpo["success"] = true;
             cuerpo["total"] = lista.size();
             cuerpo["pacientes"] = lista;
-            return crow::response(200, cuerpo.dump());
+            return ApiHttp::respuestaJson(200, cuerpo.dump());
         });
 
     CROW_ROUTE(app, "/api/pacientes")
@@ -155,7 +155,7 @@ void PacienteRoutes::registrarRutas(crow::App<crow::CORSHandler>& app) {
             cuerpo["success"] = true;
             cuerpo["message"] = mensaje;
             cuerpo["paciente"] = aJson(creado);
-            return crow::response(201, cuerpo.dump());
+            return ApiHttp::respuestaJson(201, cuerpo.dump());
         });
 
     CROW_ROUTE(app, "/api/pacientes/<int>")
@@ -185,6 +185,6 @@ void PacienteRoutes::registrarRutas(crow::App<crow::CORSHandler>& app) {
             cuerpo["success"] = true;
             cuerpo["message"] = mensaje;
             cuerpo["paciente"] = aJson(actualizado);
-            return crow::response(200, cuerpo.dump());
+            return ApiHttp::respuestaJson(200, cuerpo.dump());
         });
 }
