@@ -103,6 +103,24 @@ ResultadoOperacion PacienteService::listar(std::vector<Paciente>& pacientes, std
     return ResultadoOperacion::Exito;
 }
 
+ResultadoOperacion PacienteService::obtenerPorId(long long idPaciente,
+                                                 Paciente& paciente,
+                                                 std::string& mensaje) const {
+    if (idPaciente <= 0) {
+        mensaje = "El identificador del paciente no es válido";
+        return ResultadoOperacion::DatosInvalidos;
+    }
+
+    PacienteRepository repository;
+    if (!repository.buscarPorId(idPaciente, paciente)) {
+        mensaje = "No existe un paciente con ese identificador";
+        return ResultadoOperacion::NoEncontrado;
+    }
+
+    mensaje = "Paciente encontrado";
+    return ResultadoOperacion::Exito;
+}
+
 namespace {
 
 // Limpia, normaliza y valida los datos que llegan de la API. Devuelve el

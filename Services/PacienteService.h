@@ -14,4 +14,5 @@ public:
                                   const Paciente& datos,
                                   Paciente& actualizado,
                                   std::string& mensaje) const;
+    ResultadoOperacion obtenerPorId(long long idPaciente, Paciente& paciente, std::string& mensaje) const;
 };
