@@ -199,7 +199,16 @@ INSERT INTO eventos_medicos (id_evento, id_historia, id_usuario_registra, tipo_e
 (1, 3, 1, 'LESION',      'Herida en el brazo izquierdo durante un combate.',   'Fractura expuesta de cúbito izquierdo.',      '2026-09-03 10:30:00'),
 (2, 3, 1, 'CIRUGIA',     'Reconstrucción quirúrgica del brazo izquierdo.',     'Cirugía exitosa. Inicia recuperación.',       '2026-09-04 08:00:00'),
 (3, 1, 2, 'OBSERVACION', 'Chequeo general de rutina.',                         'Sin hallazgos.',                              '2026-10-01 10:00:00'),
-(4, 4, 2, 'ENFERMEDAD',  'Fiebre y tos persistente desde hace 3 días.',        'Infección respiratoria bacteriana.',          '2026-10-12 15:00:00');
+(4, 4, 2, 'ENFERMEDAD',  'Fiebre y tos persistente desde hace 3 días.',        'Infección respiratoria bacteriana.',          '2026-10-12 15:00:00'),
+(5,  1, 2, 'ENFERMEDAD',  'Náuseas, vómitos y dolor abdominal tras comer pescado en mal estado.', 'Gastroenteritis aguda por intoxicación alimentaria.',        '2026-10-05 20:30:00'),
+(6,  2, 1, 'ENFERMEDAD',  'Náuseas y vómitos tras comer pescado en mal estado.',                  'Intoxicación alimentaria leve.',                            '2026-10-05 21:00:00'),
+(7,  1, 2, 'OBSERVACION', 'Control posterior a la intoxicación alimentaria.',                     'Recuperación completa, sin secuelas.',                      '2026-10-08 10:00:00'),
+(8,  4, 2, 'DIAGNOSTICO', 'Radiografía de tórax por tos persistente.',                            'Sin consolidación pulmonar; compatible con bronquitis bacteriana.', '2026-10-13 09:30:00'),
+(9,  3, 2, 'OBSERVACION', 'Retiro de puntos y revisión de movilidad del brazo operado.',          'Movilidad en recuperación; se indica fisioterapia.',        '2026-10-18 10:00:00'),
+(10, 4, 2, 'LESION',      'Quemadura en la mano al manipular un hornillo.',                       'Quemadura de segundo grado en la mano derecha.',            '2026-10-19 16:45:00'),
+(11, 2, 1, 'DIAGNOSTICO', 'Mareo y debilidad reportados por el paciente.',                        'Hipotensión leve por deshidratación.',                      '2026-10-19 11:00:00'),
+(12, 4, 1, 'OBSERVACION', 'Control de evolución de la quemadura.',                                'Sin signos de infección; continuar con las curaciones.',    '2026-10-22 10:00:00'),
+(13, 3, 1, 'DIAGNOSTICO', 'Dolor al esforzar el brazo operado durante la rehabilitación.',        'Tendinitis por sobrecarga; reposo relativo.',               '2026-10-24 09:00:00');
 
 -- controles_evolucion
 -- REV #1: signos vitales en columnas (presión en mmHg, FC en lpm, T en °C,
